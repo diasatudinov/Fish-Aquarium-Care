@@ -1,0 +1,11 @@
+struct AquariumDashboardModel {
+    var title: String
+    var volume: String
+    var type: String
+    var fishCount: String
+    var lastCleaned: String
+    var temperature: String
+    var ph: String
+    var ammonia: String
+    var nitrates: String
+    var tasks: [AquariumTask]
