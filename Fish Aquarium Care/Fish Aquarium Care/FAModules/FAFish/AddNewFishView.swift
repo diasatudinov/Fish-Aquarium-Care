@@ -1,11 +1,17 @@
+//
+//  AddNewFishView.swift
+//  Fish Aquarium Care
+//
+//
+
+import SwiftUI
+import PhotosUI
+
 // MARK: - AddNewFishView
 
 struct AddNewFishView: View {
-
-    @StateObject private var viewModel = AddNewFishViewModel()
-
-    var onBack: (() -> Void)?
-    var onSave: ((AquariumFish) -> Void)?
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var viewModel: AddNewFishViewModel
 
     var body: some View {
         ZStack {
@@ -28,8 +34,17 @@ struct AddNewFishView: View {
                     .padding(.bottom, 44)
                 }
             }
+            .sheet(isPresented: $viewModel.showingImagePicker, onDismiss: loadImage) {
+                ImagePicker(selectedImage: $viewModel.selectedImage, isPresented: $viewModel.showingImagePicker)
+            }
         }
         .ignoresSafeArea(edges: .top)
+    }
+    
+    func loadImage() {
+        if let selectedImage = viewModel.selectedImage {
+            print("Selected image size: \(selectedImage.size)")
+        }
     }
 }
 
@@ -44,7 +59,7 @@ private extension AddNewFishView {
 
             HStack(spacing: 16) {
                 Button {
-                    onBack?()
+                    dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 19, weight: .medium))
@@ -76,44 +91,56 @@ private extension AddNewFishView {
         VStack(alignment: .leading, spacing: 12) {
             fieldTitle("Photo")
 
-            PhotosPicker(
-                selection: $viewModel.selectedPhotoItem,
-                matching: .images
-            ) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(cardColor.opacity(0.65))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(
-                                    Color.cyan.opacity(0.45),
-                                    style: StrokeStyle(lineWidth: 1, dash: [3, 3])
-                                )
-                        )
-
-                    if let data = viewModel.photoData,
-                       let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 150)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    } else {
-                        VStack(spacing: 12) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 25, weight: .medium))
-                                .foregroundColor(.cyan)
-
-                            Text("Tap to upload photo")
-                                .font(.system(size: 15))
-                                .foregroundColor(.white.opacity(0.55))
+            if let image = viewModel.selectedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 150)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .overlay(alignment: .topTrailing, content: {
+                        Button {
+                            viewModel.selectedImage = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .black))
+                                .foregroundStyle(.white)
+                                .padding(8)
+                                .background(.red)
+                                .clipShape(Circle())
+                        }
+                    })
+                    .onTapGesture {
+                        withAnimation {
+                            viewModel.showingImagePicker = true
                         }
                     }
+            } else {
+                VStack(spacing: 12) {
+                    Image(.uploadIcon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 24)
+
+                    Text("Tap to upload photo")
+                        .font(.system(size: 15))
+                        .foregroundColor(.white.opacity(0.55))
                 }
                 .frame(height: 150)
-            }
-            .onChange(of: viewModel.selectedPhotoItem) { _ in
-                viewModel.loadPhoto()
+                .frame(maxWidth: .infinity, alignment: .center)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(red: 0.15, green: 0.36, blue: 0.55).opacity(0.75))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .onTapGesture {
+                    withAnimation {
+                        viewModel.showingImagePicker = true
+                    }
+                }
             }
         }
     }
@@ -289,7 +316,8 @@ private extension AddNewFishView {
     var saveButton: some View {
         Button {
             let fish = viewModel.makeFish()
-            onSave?(fish)
+            viewModel.add(fish)
+            dismiss()
         } label: {
             Text("Save Fish")
                 .font(.system(size: 16, weight: .bold))
@@ -304,4 +332,168 @@ private extension AddNewFishView {
         }
         .padding(.top, 6)
     }
+}
+
+private extension AddNewFishView {
+
+    func inputBlock(
+        title: String,
+        placeholder: String,
+        text: Binding<String>,
+        keyboardType: UIKeyboardType = .default
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            fieldTitle(title)
+
+            TextField("", text: text)
+                .placeholder(when: text.wrappedValue.isEmpty) {
+                    Text(placeholder)
+                        .foregroundColor(.white.opacity(0.35))
+                }
+                .font(.system(size: 16))
+                .foregroundColor(.white)
+                .keyboardType(keyboardType)
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .background(inputBackground)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    var dateInputBlock: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            fieldTitle("Purchase Date")
+
+            ZStack {
+                HStack {
+                    DatePicker(
+                        "",
+                        selection: $viewModel.purchaseDate,
+                        displayedComponents: .date
+                    )
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .onChange(of: viewModel.purchaseDate) { _ in
+                        viewModel.hasPurchaseDate = true
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "calendar")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.72))
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .background(inputBackground)
+
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    var genderInputBlock: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            fieldTitle("Gender")
+
+            Menu {
+                ForEach(FishGender.allCases) { gender in
+                    Button(gender.rawValue) {
+                        viewModel.gender = gender
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(viewModel.gender.rawValue)
+                        .font(.system(size: 16))
+                        .foregroundColor(.white.opacity(0.55))
+
+                    Spacer()
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.55))
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .background(inputBackground)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    func foodChip(_ type: FoodType) -> some View {
+        let isSelected = viewModel.selectedFoodTypes.contains(type)
+
+        return Button {
+            viewModel.toggleFoodType(type)
+        } label: {
+            HStack(spacing: 5) {
+                Text(type.rawValue)
+
+                if isSelected {
+                    Text("×")
+                }
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(isSelected ? .black : .white)
+            .padding(.horizontal, 16)
+            .frame(height: 36)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.yellow : cardColor.opacity(0.8))
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.cyan.opacity(isSelected ? 0 : 0.2), lineWidth: 1)
+                    )
+            )
+        }
+    }
+}
+
+// MARK: - Style Helpers
+
+private extension AddNewFishView {
+
+    var background: some View {
+        Image(.appBgFA)
+            .resizable()
+            .padding(-2)
+            .ignoresSafeArea()
+    }
+
+    var cardColor: Color {
+        Color(red: 0.15, green: 0.36, blue: 0.55)
+    }
+
+    var inputBackground: some View {
+        RoundedRectangle(cornerRadius: 16)
+            .fill(cardColor.opacity(0.78))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.cyan.opacity(0.18), lineWidth: 1)
+            )
+    }
+
+    func sectionTitle(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 20, weight: .bold))
+            .foregroundColor(.white)
+    }
+
+    func fieldTitle(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 16, weight: .medium))
+            .foregroundColor(.white.opacity(0.82))
+    }
+
+    func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yyyy"
+        return formatter.string(from: date)
+    }
+}
+
+#Preview {
+    AddNewFishView(viewModel: AddNewFishViewModel())
 }

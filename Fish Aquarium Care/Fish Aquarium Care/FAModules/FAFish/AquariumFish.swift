@@ -1,9 +1,15 @@
+//
+//  AquariumFish.swift
+//  Fish Aquarium Care
+//
+//
+
+
 import SwiftUI
-import PhotosUI
 
 // MARK: - Model
 
-struct AquariumFish: Identifiable {
+struct AquariumFish: Identifiable, Codable {
     let id: UUID
     var name: String
     var species: String
@@ -19,6 +25,7 @@ struct AquariumFish: Identifiable {
     var feedingFrequency: FeedingFrequency
     var notes: String
     var photoData: Data?
+    var date: Date = .now
 
     init(
         id: UUID = UUID(),
@@ -55,7 +62,7 @@ struct AquariumFish: Identifiable {
     }
 }
 
-enum FishGender: String, CaseIterable, Identifiable {
+enum FishGender: String, CaseIterable, Identifiable, Codable {
     case male = "Male"
     case female = "Female"
     case unknown = "Unknown"
@@ -63,7 +70,7 @@ enum FishGender: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum FoodType: String, CaseIterable, Identifiable {
+enum FoodType: String, CaseIterable, Identifiable, Codable {
     case flakes = "Flakes"
     case pellets = "Pellets"
     case liveFood = "Live Food"
@@ -73,7 +80,7 @@ enum FoodType: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum FeedingFrequency: String, CaseIterable, Identifiable {
+enum FeedingFrequency: String, CaseIterable, Identifiable, Codable {
     case oneTimePerDay = "1× day"
     case twoTimesPerDay = "2× day"
     case everyOtherDay = "Every other day"

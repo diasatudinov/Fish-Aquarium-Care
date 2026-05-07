@@ -1,3 +1,12 @@
+//
+//  AddNewFishViewModel.swift
+//  Fish Aquarium Care
+//
+//
+
+import SwiftUI
+import PhotosUI
+
 // MARK: - ViewModel
 
 final class AddNewFishViewModel: ObservableObject {
@@ -25,27 +34,54 @@ final class AddNewFishViewModel: ObservableObject {
     @Published var selectedPhotoItem: PhotosPickerItem?
     @Published var photoData: Data?
 
+    @Published var selectedImage: UIImage?
+    @Published var showingImagePicker = false
+    
+    @Published var fishes: [AquariumFish] = [] {
+        didSet {
+            saveFishes()
+        }
+    }
+    
+    private var fishesFileURL: URL {
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return dir.appendingPathComponent("fishesFileURL.json")
+    }
+    
+    init() {
+        loadFishes()
+    }
+    
+    private func saveFishes() {
+        let url = fishesFileURL
+        do {
+            let data = try JSONEncoder().encode(fishes)
+            try data.write(to: url, options: [.atomic])
+        } catch {
+            print("Failed to save teams:", error)
+        }
+    }
+    
+    private func loadFishes() {
+        let url = fishesFileURL
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return
+        }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            let dashboardData = try JSONDecoder().decode([AquariumFish].self, from: data)
+            fishes = dashboardData
+        } catch {
+            print("Failed to load teams:", error)
+        }
+    }
+    
     func toggleFoodType(_ type: FoodType) {
         if selectedFoodTypes.contains(type) {
             selectedFoodTypes.remove(type)
         } else {
             selectedFoodTypes.insert(type)
-        }
-    }
-
-    func loadPhoto() {
-        guard let selectedPhotoItem else { return }
-
-        Task {
-            do {
-                let data = try await selectedPhotoItem.loadTransferable(type: Data.self)
-
-                await MainActor.run {
-                    self.photoData = data
-                }
-            } catch {
-                print("Photo loading error:", error)
-            }
         }
     }
 
@@ -64,7 +100,11 @@ final class AddNewFishViewModel: ObservableObject {
             foodTypes: Array(selectedFoodTypes),
             feedingFrequency: feedingFrequency,
             notes: notes,
-            photoData: photoData
+            photoData: selectedImage?.jpegData(compressionQuality: 0.8)
         )
+    }
+    
+    func add(_ fish: AquariumFish) {
+        fishes.append(fish)
     }
 }

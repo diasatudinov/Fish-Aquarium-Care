@@ -1,10 +1,24 @@
+//
+//  AddEventView.swift
+//  Fish Aquarium Care
+//
+//
+
+import SwiftUI
+import PhotosUI
 // MARK: - AddEventView
 
 struct AddEventView: View {
-
-    @StateObject private var viewModel = AddEventViewModel()
-
-    var onBack: (() -> Void)?
+    @Environment(\.dismiss) private var dismiss
+    
+    @State var selectedType: AquariumEventType = .waterChange
+    @State var date: Date = Date()
+    @State var description: String = ""
+    @State var reminderDate: Date? = nil
+    @State var isTypePickerOpen: Bool = false
+    @State private var selectedImage: UIImage?
+    @State private var showingImagePicker = false
+    
     var onSave: ((AquariumEvent) -> Void)?
 
     var body: some View {
@@ -20,7 +34,6 @@ struct AddEventView: View {
                         dateSection
                         descriptionSection
                         photoSection
-                        reminderSection
                         saveButton
                     }
                     .padding(.horizontal, 26)
@@ -28,8 +41,22 @@ struct AddEventView: View {
                     .padding(.bottom, 40)
                 }
             }
+            .sheet(isPresented: $showingImagePicker, onDismiss: loadImage) {
+                ImagePicker(selectedImage: $selectedImage, isPresented: $showingImagePicker)
+            }
         }
         .ignoresSafeArea(edges: .top)
+    }
+    
+    func selectType(_ type: AquariumEventType) {
+        selectedType = type
+        isTypePickerOpen = false
+    }
+    
+    func loadImage() {
+        if let selectedImage = selectedImage {
+            print("Selected image size: \(selectedImage.size)")
+        }
     }
 }
 
@@ -44,7 +71,7 @@ private extension AddEventView {
 
             HStack(spacing: 18) {
                 Button {
-                    onBack?()
+                    dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 21, weight: .medium))
@@ -78,11 +105,11 @@ private extension AddEventView {
 
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    viewModel.isTypePickerOpen.toggle()
+                    isTypePickerOpen.toggle()
                 }
             } label: {
                 HStack {
-                    Text(viewModel.selectedType.rawValue)
+                    Text(selectedType.rawValue)
                         .font(.system(size: 17, weight: .regular))
                         .foregroundColor(.white.opacity(0.55))
 
@@ -91,19 +118,19 @@ private extension AddEventView {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.white.opacity(0.75))
-                        .rotationEffect(.degrees(viewModel.isTypePickerOpen ? 180 : 0))
+                        .rotationEffect(.degrees(isTypePickerOpen ? 180 : 0))
                 }
                 .padding(.horizontal, 22)
                 .frame(height: 50)
                 .background(fieldBackground)
             }
 
-            if viewModel.isTypePickerOpen {
+            if isTypePickerOpen {
                 VStack(spacing: 0) {
                     ForEach(AquariumEventType.allCases) { type in
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
-                                viewModel.selectType(type)
+                                selectType(type)
                             }
                         } label: {
                             HStack {
@@ -138,9 +165,14 @@ private extension AddEventView {
 
             ZStack {
                 HStack {
-                    Text(formattedDate(viewModel.date))
-                        .font(.system(size: 17))
-                        .foregroundColor(.white.opacity(0.55))
+                    DatePicker(
+                        "",
+                        selection: $date,
+                        displayedComponents: [.date]
+                    )
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, maxHeight: 56, alignment: .leading)
 
                     Spacer()
 
@@ -151,16 +183,9 @@ private extension AddEventView {
                 .padding(.horizontal, 22)
                 .frame(height: 56)
                 .background(fieldBackground)
+                
 
-                DatePicker(
-                    "",
-                    selection: $viewModel.date,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .datePickerStyle(.compact)
-                .labelsHidden()
-                .opacity(0.02)
-                .frame(maxWidth: .infinity, maxHeight: 56)
+                
             }
         }
     }
@@ -177,7 +202,7 @@ private extension AddEventView {
                             .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
                     )
 
-                TextEditor(text: $viewModel.description)
+                TextEditor(text: $description)
                     .font(.system(size: 16))
                     .foregroundColor(.white)
                     .scrollContentBackground(.hidden)
@@ -185,7 +210,7 @@ private extension AddEventView {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
 
-                if viewModel.description.isEmpty {
+                if description.isEmpty {
                     Text("Add details about this event...")
                         .font(.system(size: 16))
                         .foregroundColor(.white.opacity(0.4))
@@ -201,96 +226,65 @@ private extension AddEventView {
         VStack(alignment: .leading, spacing: 12) {
             title("Photo (Optional)")
 
-            PhotosPicker(
-                selection: $viewModel.selectedPhotoItem,
-                matching: .images
-            ) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color(red: 0.15, green: 0.36, blue: 0.55).opacity(0.65))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(
-                                    Color.cyan.opacity(0.45),
-                                    style: StrokeStyle(lineWidth: 1, dash: [3, 3])
-                                )
-                        )
-
-                    if let data = viewModel.photoData,
-                       let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 142)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
-                    } else {
-                        VStack(spacing: 12) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 24, weight: .medium))
-                                .foregroundColor(.cyan)
-
-                            Text("Tap to upload photo")
-                                .font(.system(size: 15))
-                                .foregroundColor(.white.opacity(0.55))
+            if let image = selectedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 142)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .overlay(alignment: .topTrailing, content: {
+                        Button {
+                            selectedImage = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .black))
+                                .foregroundStyle(.white)
+                                .padding(8)
+                                .background(.red)
+                                .clipShape(Circle())
+                        }
+                    })
+                    .onTapGesture {
+                        withAnimation {
+                            showingImagePicker = true
                         }
                     }
+            } else {
+                VStack(spacing: 12) {
+                    Image(.uploadIcon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 24)
+
+                    Text("Tap to upload photo")
+                        .font(.system(size: 15))
+                        .foregroundColor(.white.opacity(0.55))
                 }
                 .frame(height: 142)
-            }
-            .onChange(of: viewModel.selectedPhotoItem) { _ in
-                viewModel.loadPhoto()
-            }
-        }
-    }
-
-    var reminderSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            title("Set Reminder")
-
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    viewModel.isReminderEnabled.toggle()
-
-                    if viewModel.isReminderEnabled && viewModel.reminderDate == nil {
-                        viewModel.reminderDate = Date()
+                .frame(maxWidth: .infinity, alignment: .center)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(red: 0.15, green: 0.36, blue: 0.55).opacity(0.75))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .onTapGesture {
+                    withAnimation {
+                        showingImagePicker = true
                     }
                 }
-            } label: {
-                HStack {
-                    Text(reminderText)
-                        .font(.system(size: 16))
-                        .foregroundColor(.white.opacity(viewModel.isReminderEnabled ? 0.8 : 0.45))
-
-                    Spacer()
-
-                    Image(systemName: viewModel.isReminderEnabled ? "bell.fill" : "bell")
-                        .foregroundColor(.white.opacity(0.65))
-                }
-                .padding(.horizontal, 22)
-                .frame(height: 50)
-                .background(fieldBackground)
-            }
-
-            if viewModel.isReminderEnabled {
-                DatePicker(
-                    "",
-                    selection: Binding(
-                        get: { viewModel.reminderDate ?? Date() },
-                        set: { viewModel.reminderDate = $0 }
-                    ),
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .datePickerStyle(.compact)
-                .labelsHidden()
-                .tint(.cyan)
             }
         }
     }
 
     var saveButton: some View {
         Button {
-            let event = viewModel.makeEvent()
+            let event = AquariumEvent(type: selectedType, date: date, description: description, photoData: selectedImage?.jpegData(compressionQuality: 0.8))
             onSave?(event)
+            dismiss()
         } label: {
             Text("Save Event")
                 .font(.system(size: 17, weight: .bold))
@@ -305,4 +299,41 @@ private extension AddEventView {
         }
         .padding(.top, 2)
     }
+}
+
+// MARK: - Helpers
+
+private extension AddEventView {
+
+    var background: some View {
+        Image(.appBgFA)
+            .resizable()
+            .padding(-1)
+            .ignoresSafeArea()
+    }
+
+    var fieldBackground: some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(Color.white.opacity(0.1))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.tabBarAccent.opacity(0.3), lineWidth: 1)
+            )
+    }
+
+    func title(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 18, weight: .medium))
+            .foregroundColor(.white.opacity(0.82))
+    }
+
+    func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yyyy HH:mm"
+        return formatter.string(from: date)
+    }
+}
+
+#Preview {
+    AddEventView()
 }

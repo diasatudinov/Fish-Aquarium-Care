@@ -1,3 +1,11 @@
+//
+//  FishLibraryView.swift
+//  Fish Aquarium Care
+//
+//
+
+import SwiftUI
+
 struct FishLibraryView: View {
     
     @ObservedObject var viewModel: AddNewFishViewModel
@@ -45,7 +53,7 @@ struct FishLibraryView: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 70)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 150)
                 }
             }
             .ignoresSafeArea()
@@ -85,15 +93,10 @@ struct FishLibraryView: View {
     }
     
     private var background: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.02, green: 0.13, blue: 0.23),
-                Color(red: 0.03, green: 0.29, blue: 0.46),
-                Color(red: 0.02, green: 0.14, blue: 0.24)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        Image(.appBgFA)
+            .resizable()
+            .padding(-1)
+            .ignoresSafeArea()
     }
     
     private func addFish(_ item: FishLibraryItem) {
@@ -105,5 +108,91 @@ struct FishLibraryView: View {
         viewModel.fishes.contains {
             $0.name == item.russianName && $0.species == item.latinName
         }
+    }
+}
+
+#Preview(body: {
+    FishLibraryView(viewModel: AddNewFishViewModel())
+})
+
+struct FishLibraryCardView: View {
+    
+    let item: FishLibraryItem
+    let isAdded: Bool
+    let onAdd: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.cyan.opacity(0.16))
+                
+                Text(item.emoji)
+                    .font(.system(size: 34))
+            }
+            .frame(width: 70, height: 70)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text(item.title)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                
+                Text(item.subtitle)
+                    .font(.system(size: 13))
+                    .italic()
+                    .foregroundColor(.white.opacity(0.6))
+                
+                HStack(spacing: 8) {
+                    tag(item.size)
+                    tag(item.temperament)
+                    difficultyTag(item.difficulty)
+                }
+                
+                Button {
+                    onAdd()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: isAdded ? "checkmark" : "plus")
+                        Text(isAdded ? "Added" : "Add to Aquarium")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(isAdded ? .green : .cyan)
+                }
+                .disabled(isAdded)
+            }
+            
+            Spacer()
+        }
+        .padding(14)
+        .background(.white.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.tabBarAccent.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    private func tag(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(.white.opacity(0.75))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(
+                Capsule()
+                    .fill(Color.white.opacity(0.1))
+            )
+    }
+    
+    private func difficultyTag(_ difficulty: FishDifficulty) -> some View {
+        Text(difficulty.title)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(.green)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(
+                Capsule()
+                    .fill(Color.green.opacity(0.12))
+            )
     }
 }

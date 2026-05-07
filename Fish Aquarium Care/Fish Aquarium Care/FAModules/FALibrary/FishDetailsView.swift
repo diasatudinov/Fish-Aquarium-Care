@@ -1,3 +1,10 @@
+//
+//  FishDetailsView.swift
+//  Fish Aquarium Care
+//
+//
+import SwiftUI
+
 struct FishDetailsView: View {
     
     let item: FishLibraryItem
@@ -21,10 +28,10 @@ struct FishDetailsView: View {
                     fishImage
                     mainInfoCard
                     waterParametersCard
-                    infoCard(title: "Питание", text: item.food)
-                    infoCard(title: "Объём аквариума", text: "Минимум \(item.minVolume)")
-                    infoCard(title: "Темперамент", text: item.temperament)
-                    infoCard(title: "Сложность", text: item.difficulty.title)
+                    infoCard(title: "Diet", text: item.food)
+                    infoCard(title: "Tank Size", text: "Minimum \(item.minVolume)")
+                    infoCard(title: "Temperament", text: item.temperament)
+                    infoCard(title: "Difficulty", text: item.difficulty.title)
                     addButton
                 }
                 .padding(.horizontal, 24)
@@ -91,7 +98,7 @@ struct FishDetailsView: View {
                 detailTag(item.difficulty.title)
             }
             
-            Text("Категория: \(item.category.rawValue). Рекомендуемый минимальный объём аквариума — \(item.minVolume).")
+            Text("Category: \(item.category.rawValue). Recommended minimum tank size is \(item.minVolume).")
                 .font(.system(size: 15))
                 .foregroundColor(.white.opacity(0.82))
                 .lineSpacing(4)
@@ -216,14 +223,25 @@ struct FishDetailsView: View {
     }
     
     private var background: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.02, green: 0.13, blue: 0.23),
-                Color(red: 0.03, green: 0.29, blue: 0.46),
-                Color(red: 0.02, green: 0.14, blue: 0.24)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        Image(.appBgFA)
+            .resizable()
+            .padding(-1)
+            .ignoresSafeArea()
+    }
+}
+
+extension View {
+    func placeholder<Content: View>(
+        when shouldShow: Bool,
+        alignment: Alignment = .leading,
+        @ViewBuilder placeholder: () -> Content
+    ) -> some View {
+        ZStack(alignment: alignment) {
+            if shouldShow {
+                placeholder()
+            }
+            
+            self
+        }
     }
 }

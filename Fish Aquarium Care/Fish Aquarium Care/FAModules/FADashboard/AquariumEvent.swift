@@ -1,3 +1,10 @@
+//
+//  AquariumEvent.swift
+//  Fish Aquarium Care
+//
+//
+
+
 import SwiftUI
 import PhotosUI
 
@@ -39,5 +46,24 @@ enum AquariumEventType: String, CaseIterable, Identifiable, Codable {
 
     var id: String {
         rawValue
+    }
+        
+    var icon: String {
+        switch self {
+        case .waterChange:
+            "💧"
+        case .feeding:
+            "🍽️"
+        case .filterCleaning:
+            "🧹"
+        case .treatment:
+            "💊"
+        case .newFish:
+            "🐟"
+        case .equipment:
+            "🔧"
+        case .other:
+            "📝"
+        }
     }
 }

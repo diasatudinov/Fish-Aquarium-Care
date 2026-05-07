@@ -2,7 +2,6 @@
 //  ContentView.swift
 //  Fish Aquarium Care
 //
-//  Created by Dias Atudinov on 04.05.2026.
 //
 
 import SwiftUI

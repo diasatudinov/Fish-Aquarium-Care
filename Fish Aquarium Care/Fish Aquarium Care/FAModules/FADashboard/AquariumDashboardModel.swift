@@ -1,4 +1,12 @@
-struct AquariumDashboardModel {
+//
+//  AquariumDashboardModel.swift
+//  Fish Aquarium Care
+//
+//
+
+import SwiftUI
+
+struct AquariumDashboardModel: Codable {
     var title: String
     var volume: String
     var type: String
@@ -8,4 +16,5 @@ struct AquariumDashboardModel {
     var ph: String
     var ammonia: String
     var nitrates: String
-    var tasks: [AquariumTask]
+    var tasks: [AquariumEvent]
+}
